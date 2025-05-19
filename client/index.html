@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>🗡️ Темные Мечи — Онлайн</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #loginForm, #gameContainer {
+      max-width: 600px;
+      margin: 0 auto 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .map {
+      display: grid;
+      grid-template-columns: repeat(9, 50px);
+      gap: 5px;
+      margin-top: 20px;
+    }
+
+    .room {
+        width: 50px;
+        height: 50px;
+        border: 1px solid #666;
+        display: inline-block;
+        text-align: center;
+        font-size: 0.7em;
+        margin: 2px;
+        cursor: pointer;
+    }
+
+    .room.biome-forest { background-color: #c1ff98; } /* Зеленый */
+    .room.biome-desert { background-color: #f3f8be; } /* Желтый */
+    .room.biome-swamp { background-color: #b6f9f9; } /* Бирюзовый */
+    .room.biome-mountains { background-color: #a29494; } /* Серый */
+    .room.empty-room { background-color: #fafafa; }
+    .room.monster-room { background-color: #ffe0e0; }
+    .room.corpse-room { background-color: #e0e0ff; }
+    .room.road { background-color: #d2b48c; }
+
+    .icon {
+        font-size: 1.2em;
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        text-align: center;
+    }
+
+    #playerStats {
+      margin-top: 20px;
+    }
+
+    .log {
+      margin-top: 20px;
+      background: #fff;
+      padding: 10px;
+      height: 100px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🗡️ Темные Мечи — Онлайн</h1>
+
+<!-- Форма входа -->
+<div id="loginForm">
+  <input type="text" id="playerName" placeholder="Имя персонажа">
+  <select id="playerRace">
+    <option value="human">Человек</option>
+    <option value="elf">Эльф</option>
+    <option value="drow">Дроу</option>
+    <option value="orc">Орк</option>
+    <option value="dwarf">Гном</option>
+  </select>
+  <select id="playerReligion">
+    <option value="order">Порядок</option>
+    <option value="chaos">Хаос</option>
+    <option value="light">Свет</option>
+    <option value="dark">Тьма</option>
+  </select>
+  <button onclick="join()">Присоединиться</button>
+</div>
+
+<!-- Игровой интерфейс -->
+<div id="gameContainer" style="display:none;">
+  <h2>🎮 Вы вошли как: <span id="playerDisplayName"></span></h2>
+
+  <!-- Статистика -->
+  <div id="playerStats"></div>
+
+  <div id="monsterInfo" style="margin-top: 20px; display:none;">
+    <h3>👹 Информация о монстре:</h3>
+    <p><strong>Имя:</strong> <span id="monsterName"></span></p>
+    <p><strong>Уровень:</strong> <span id="monsterLevel"></span></p>
+    <p><strong>HP:</strong> <span id="monsterHP"></span> / <span id="monsterMaxHP"></span></p>
+    <p><strong>Урон:</strong> <span id="monsterDamage"></span></p>
+    <p><strong>Школа магии:</strong> <span id="monsterSchool"></span></p>
+    <p><strong>Сопротивление:</strong> <span id="monsterResist"></span></p>
+  </div>
+
+  <button id="attackMonsterBtn" style="display:none;" onclick="attackMonster()">⚔️ Атаковать монстра</button>
+  <button onclick="castSpell('fire')">🔥 Огненный шар</button>
+  <button onclick="castSpell('ice')">❄️ Ледяная стрела</button>
+  <button onclick="castSpell('lightning')">⚡ Удар молнии</button>
+  <!-- Инвентарь -->
+  <div id="inventory" style="margin-top:20px;">
+    <h3>🎒 Ваш инвентарь</h3>
+    <div id="inventoryList">Пусто</div>
+  </div>
+  <div id="equipped">...</div>
+
+  <!-- Труп (если есть) -->
+  <div id="corpseInfo" style="display:none; margin-top:20px;">
+    <h3>☠️ Информация о трупе:</h3>
+    <p><strong>Имя:</strong> <span id="corpseName"></span></p>
+    <button onclick="lootCorpse()" id="lootBtn" style="display:none;">🧟‍♂️ Обыскать труп</button>
+  </div>
+
+  <!-- Карта -->
+  <div class="map" id="gameMap"></div>
+
+  <div id="legend" style="margin-top: 20px;">
+    <h3>🗺️ Легенда карты:</h3>
+    <p><span class="icon">🛒</span> – Магазин</p>
+    <p><span class="icon">🏛</span> – Гильдия</p>
+    <p><span class="icon">🪜</span> – Лестница в Небеса</p>
+    <p><span class="icon">⛰</span> – Горы</p>
+    <p><span class="icon">🌿</span> – Болото</p>
+    <p><span class="icon">☀️</span> – Пустыня</p>
+    <p><span class="icon">🌲</span> – Лес</p>
+    <p><span class="icon">⚠️</span> – Безопасная зона</p>
+  </div>
+
+  <!-- Лог событий -->
+  <div class="log" id="chatLog"></div>
+
+  <input type="text" id="chatInput" placeholder="Напишите сообщение...">
+  <button onclick="sendChat()">Отправить</button>
+
+  <!-- Действия -->
+  <button onclick="leaveGame()">Выйти из игры</button>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
